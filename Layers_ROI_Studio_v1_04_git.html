@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Layers ROI Studio</title>
+<style>
+  :root{
+    --bg:#071b14; --card:#0e2a22; --muted:#a9c7b4; --text:#e6f2ec;
+    --out-bg:#0c2f25; --out-border:#144034;
+    --with-bg:#1f6b4b; --diff-bg:#3b8f6a;
+    --roi-green:#39bf49; --roi-orange:#d9ab38; --roi-red:#e84638;
+    --logo-stroke:#e6f2ec; --logo-fill:rgba(230,242,236,.18);
+    --w-input:104px; --w-input-mobile:96px; --inp-pad:6px 9px; --inp-radius:9px; --inp-font:.92rem;
+  }
+  :root[data-theme='light']{
+    --bg:#f4f7f6; --card:#ffffff; --muted:#5f8671; --text:#0b1220;
+    --out-bg:#eef8f1; --out-border:#c7e6d7;
+    --with-bg:#cfe9dc; --diff-bg:#e7f4ee;
+    --roi-green:#168c28; --roi-orange:#b8801c; --roi-red:#c53329;
+    --logo-stroke:#1b7f60; 
+    --logo-fill:rgba(9, 171, 119, 0.22);
+  }
+
+  html,body{ background:linear-gradient(180deg,#061d16 0%,var(--bg) 100%); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; margin:0; }
+
+  /* Header */
+  .brandHeader{ padding:10px 0 6px; background:rgba(0,0,0,.18); -webkit-backdrop-filter:saturate(120%) blur(2px); backdrop-filter:saturate(120%) blur(2px); position:sticky; top:0; z-index:10 }
+  .headerContainer{position:relative;max-width:1200px;margin:0 auto;padding:0 24px}
+  .versionTR{position:absolute;right:10px;top:6px;font-size:.72rem;letter-spacing:.02em;color:#cbd5e1;opacity:.65;user-select:none}
+  :root[data-theme='light'] .versionTR{color:#3f5b4c;opacity:.6}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brandMark{flex:0 0 auto; filter:drop-shadow(0 2px 6px rgba(0,0,0,.22))}
+  .brandText{display:flex;flex-direction:column}
+  .brandTitle{font-size:1.26rem;font-weight:800;color:var(--text)}
+  .brandSubtitle{font-size:.88rem;color:var(--muted);margin-top:2px}
+
+  /* Layout */
+  .container{max-width:1200px;margin:0 auto;padding:20px 24px}
+  .mainGrid{display:grid;grid-template-columns:1fr;gap:20px}
+  @media(min-width:960px){.mainGrid{grid-template-columns:520px 1fr}}
+
+  .card{background:var(--card);border-radius:14px;padding:16px 18px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  :root[data-theme='light'] .card{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .card h2{margin:0 0 8px 0;font-size:1.02rem}
+
+  /* Inputs */
+  .row{display:grid;grid-template-columns:1fr var(--w-input);gap:10px;align-items:center;margin:8px 0 10px}
+  .row label{font-size:.9rem}
+  .effectsGrid{display:grid;grid-template-columns:auto 1fr var(--w-input);gap:10px;align-items:center;margin:8px 0 10px}
+
+  input[type="number"], input[type="text"]{width:100%;max-width:var(--w-input);padding:var(--inp-pad);border-radius:var(--inp-radius);border:1px solid #1f2937;background:#0b1220;color:var(--text);font-size:var(--inp-font);height:32px;box-sizing:border-box}
+  :root[data-theme='light'] input[type="number"], :root[data-theme='light'] input[type="text"]{background:#f7faf9;border-color:#d8e7de;color:#0b1220}
+
+  input[type="range"]{width:100%;height:20px;-webkit-appearance:none;appearance:none;background:transparent}
+  input[type="range"]::-webkit-slider-runnable-track{height:6px;background:linear-gradient(90deg,var(--with-bg),var(--diff-bg));border-radius:8px}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;height:16px;width:16px;border-radius:50%;background:#dff5d5;border:2px solid var(--out-border);margin-top:-5px}
+  input[type="range"]::-moz-range-track{height:6px;background:linear-gradient(90deg,var(--with-bg),var(--diff-bg));border-radius:8px}
+  input[type="range"]::-moz-range-thumb{height:16px;width:16px;border-radius:50%;background:#dff5d5;border:2px solid var(--out-border)}
+
+  .resultsWrap{margin-top:6px}
+  .resultsTable{width:100%;border-collapse:separate;border-spacing:8px;table-layout:fixed}
+  .resultsTable th{font-weight:800;color:#cbd5e1;font-size:.88rem;padding:8px 10px;background:var(--out-bg);border-radius:8px;border:1px solid var(--out-border);text-align:left}
+  :root[data-theme='light'] .resultsTable th{color:#385a4a}
+  .resultsTable td{padding:8px 10px;font-size:.94rem;background:var(--out-bg);border-radius:8px;color:var(--text);word-break:break-word}
+  .resultsTable td.withAdd{background:var(--with-bg)}
+  .resultsTable td.diffAdd{background:var(--diff-bg)}
+  .rowHeader{color:#cbd5e1;font-weight:600}
+  :root[data-theme='light'] .rowHeader{color:#385a4a}
+
+  .roiBox{margin-top:12px;text-align:center;font-size:1.52rem;font-weight:800;padding:12px;border-radius:12px}
+  .beBox{margin-top:8px;text-align:center;font-size:.98rem;font-weight:700;padding:10px;border-radius:10px;background:var(--out-bg);border:1px solid var(--out-border)}
+
+  .actionsBottom{display:flex;justify-content:center;gap:10px;margin-top:16px;margin-bottom:16px;flex-wrap:wrap}
+  .btn{background:#1f2937;color:#e5e7eb;border:none;padding:7px 11px;border-radius:10px;cursor:pointer;font-weight:600;min-height:34px}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  :root[data-theme='light'] .btn{background:#0e7a53;color:#fff;border:1px solid #0c6a47}
+
+  @media(max-width:480px){
+    .container{padding:14px}
+    .mainGrid{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr var(--w-input-mobile)}
+    .effectsGrid{grid-template-columns:minmax(88px,auto) 1fr var(--w-input-mobile)}
+    .resultsTable{border-spacing:4px}
+    .resultsTable th,.resultsTable td{padding:3px 5px;line-height:1.14;border-radius:6px}
+    .rowHeader{font-size:.78rem}
+    .roiBox{font-size:1.08rem;padding:9px;line-height:1.1}
+    .beBox{font-size:.84rem;padding:8px;line-height:1.15}
+    .actionsBottom{gap:8px;margin-top:12px;margin-bottom:12px}
+  }
+
+  .pct{font-size:.78rem;color:#f1f5f9;line-height:1.1;margin-left:6px}
+  :root[data-theme='light'] .pct{color:#385a4a}
+
+  /* =========================
+     Modals: ensure hidden when aria-hidden="true"
+     ========================= */
+  .nvs-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none!important;align-items:center;justify-content:center;z-index:1000}
+  .nvs-modal[data-open="true"]{display:flex!important}
+  .nvs-modal[aria-hidden="true"]{display:none!important} /* ✅ Simple, robust fix */
+
+  .nvs-modal .content{background:#dff5d5;color:#000;width:min(920px,96vw);max-height:80vh;overflow:auto;border-radius:16px;padding:20px 24px 74px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .nvs-modal h3{margin:0 0 8px 0}
+  .nvs-modal .content .row{grid-template-columns:1fr minmax(var(--w-input),140px);gap:14px}
+  .setupSectionTitle{margin:12px 0 6px;font-weight:800;font-size:.95rem;color:#204634}
+  .setupDivider{height:1px;background:#c7e6d7;margin:14px 0}
+  .mortalityGroup{display:none}
+  .hint{font-size:.82rem;color:#3d5b4d;line-height:1.2;margin-top:2px}
+  .nvs-modal .footerBar{position:sticky;bottom:0;left:0;right:0;display:flex;justify-content:flex-end;gap:8px;padding:10px 8px;background:linear-gradient(180deg,rgba(223,245,213,0),rgba(223,245,213,.95) 35%);border-top:1px solid #c7e6d7;backdrop-filter:saturate(120%) blur(2px)}
+  .nvs-modal .btn{background:#0e7a53;color:#fff;border:1px solid #0c6a47}
+  .nvs-modal .btn:hover{filter:brightness(1.05)}
+  .nvs-modal :focus-visible{outline:2px solid #238b62;outline-offset:2px;border-radius:6px}
+  @media (max-width:520px){.nvs-modal .content .row{grid-template-columns:1fr 110px;gap:12px}.nvs-modal .content{padding:16px 16px 74px}}
+
+ 
+  .report{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0b1220}
+  .report h1{margin:0 0 6px 0;font-size:1.2rem}
+  .report h2{margin:14px 0 6px 0;font-size:1rem}
+  .report .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .report table{width:100%;border-collapse:collapse;margin-top:6px}
+  .report th,.report td{border:1px solid #d1d5db;padding:6px 8px;text-align:left;font-size:.92rem}
+  .report .meta{font-size:.85rem;color:#334155;margin-top:4px}
+  .report small{color:#475569}
+  @page{size:A4;margin:12mm}
+  
+  :root[data-theme='light'] .brandTitle{
+  color:#0e7a53;
+}
+
+  /* Tooltip for Break‑even */
+  .helpTip{
+    position: relative;
+    display: inline-block;
+    margin-left: 6px;
+    font-weight: 700;
+    cursor: help;
+    color: #0e7a53;
+  }
+  :root[data-theme='light'] .helpTip{ color:#0e7a53; }
+
+  .helpTipText{
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    background: #0b1220;
+    color: #e5e7eb;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35);
+    z-index: 50;
+    transition: opacity .15s ease;
+  }
+  :root[data-theme='light'] .helpTipText{
+    background:#0e7a53; color:#fff; box-shadow:0 4px 12px rgba(0,0,0,.18);
+  }
+  .helpTipText::after{
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #0b1220 transparent transparent transparent;
+  }
+  :root[data-theme='light'] .helpTipText::after{
+    border-color: #0e7a53 transparent transparent transparent;
+  }
+  .helpTip:hover .helpTipText,
+  .helpTip:focus .helpTipText{
+    visibility: visible;
+    opacity: 1;
+  }
+</style>
+
+</style>
+</head>
+<body>
+  <header class="brandHeader">
+    <div class="headerContainer">
+      <div class="versionTR" id="versionTR"></div>
+      <div class="brand" role="banner" aria-label="Layers ROI Studio header">
+        <svg class="brandMark" width="56" height="56" viewBox="0 0 64 64" role="img" aria-labelledby="logoTitle logoDesc" aria-hidden="false">
+          <title id="logoTitle">Layers ROI Studio</title>
+          <desc id="logoDesc">Circular badge with a stylized poultry silhouette</desc>
+          <circle cx="32" cy="32" r="28" fill="none" stroke="var(--logo-stroke)" stroke-width="4"/>
+          <circle cx="32" cy="32" r="24" fill="var(--logo-fill)" />
+          <g fill="var(--logo-stroke)">
+            <ellipse cx="30" cy="38" rx="14" ry="16"/>
+            <circle cx="40" cy="26" r="6"/>
+            <path d="M45 26 L52 22 L45 30 Z"/>
+            <circle cx="37.5" cy="19.5" r="2.7"/>
+            <circle cx="41.8" cy="25.2" r="1.5" fill="var(--bg)"/>
+          </g>
+        </svg>
+        <div class="brandText">
+          <div class="brandTitle">Layers ROI Studio</div>
+          <div class="brandSubtitle">Decisions based on ROI</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="mainGrid">
+        <section class="card" aria-labelledby="inputsTitle">
+          <h2 id="inputsTitle">Inputs</h2>
+          <!-- Flock input: text + thousands separator -->
+          <div class="row"><label for="flock">Flock size (hens)</label><input name="flock" id="flock" type="text" inputmode="numeric" value="1" /></div>
+          <div class="row"><label for="weeks">Production phase length (weeks)</label><input name="weeks" id="weeks" type="number" step="1" min="1" max="100" value="60" /></div>
+          <div class="row"><label for="fi_gpd">Average feed intake / hen / day (g)</label><input name="fi_gpd" id="fi_gpd" type="number" step="1" min="1" value="115" /></div>
+          <div class="row"><label for="add_cost_t">Feed additive inv. (€/ton)</label><input name="add_cost_t" id="add_cost_t" type="number" step="0.1" min="0" value="4" /></div>
+          <div class="row"><label for="hdp_pct">Average Laying rate (%)</label><input name="hdp_pct" id="hdp_pct" type="number" step="0.1" min="0" max="100" value="87" /></div>
+          <div class="row"><label for="egg_price">Egg price (€/egg)</label><input name="egg_price" id="egg_price" type="number" step="0.01" min="0" value="0.15" /></div>
+          <div class="effectsGrid"><label for="mort_red_pp_slider">Mortality reduction (pp)</label><input name="mort_red_pp_slider" id="mort_red_pp_slider" type="range" min="0" step="0.1" /><input name="mort_red_pp" id="mort_red_pp" type="number" step="0.1" min="0" value="1" /></div>
+          <div class="effectsGrid"><label for="inc_laying_slider">Increment of laying eggs (%)</label><input name="inc_laying_slider" id="inc_laying_slider" type="range" min="0" step="0.1" /><input name="inc_laying" id="inc_laying" type="number" step="0.1" min="0" value="1" /></div>
+          <div class="effectsGrid"><label for="inc_sellable_slider">Increment of sellable eggs (%)</label><input name="inc_sellable_slider" id="inc_sellable_slider" type="range" min="0" step="0.1" /><input name="inc_sellable" id="inc_sellable" type="number" step="0.1" min="0" value="1" /></div>
+        </section>
+
+        <section class="card" aria-labelledby="resultsTitle">
+          <h2 id="resultsTitle">Results</h2>
+          <div class="resultsWrap">
+            <table class="resultsTable" aria-describedby="resultsTitle">
+              <thead><tr><th scope="col">Metric</th><th scope="col">Without</th><th scope="col">With</th><th scope="col">Diff</th></tr></thead>
+              <tbody>
+                <tr><th scope="row" class="rowHeader">Feed (t)</th><td id="g_no_feed_t">–</td><td id="g_yes_feed_t" class="withAdd">–</td><td id="g_diff_feed_t" class="diffAdd">–</td></tr>
+                <tr><th scope="row" class="rowHeader">Feed/hen (kg)</th><td id="g_no_feed_hen">–</td><td id="g_yes_feed_hen" class="withAdd">–</td><td id="g_diff_feed_hen" class="diffAdd">–</td></tr>
+                <tr><th scope="row" class="rowHeader">Feed cost (€)</th><td id="g_no_feed_cost">–</td><td id="g_yes_feed_cost" class="withAdd">–</td><td id="g_diff_feed_cost" class="diffAdd">–</td></tr>
+                <tr><th scope="row" class="rowHeader">Eggs produced</th><td id="g_no_eggs_prod">–</td><td id="g_yes_eggs_prod" class="withAdd">–</td><td id="g_diff_eggs_prod" class="diffAdd">–</td></tr>
+                <tr><th scope="row" class="rowHeader">Eggs sold</th><td id="g_no_eggs_sold">–</td><td id="g_yes_eggs_sold" class="withAdd">–</td><td id="g_diff_eggs_sold" class="diffAdd">–</td></tr>
+                <tr><th scope="row" class="rowHeader">Eggs revenue (€)</th><td id="g_no_eggs_rev">–</td><td id="g_yes_eggs_rev" class="withAdd">–</td><td id="g_diff_eggs_rev" class="diffAdd">–</td></tr>
+                <tr><th scope="row" class="rowHeader">Additive inv. (€)</th><td id="g_no_add_cost">€0</td><td id="g_yes_add_cost" class="withAdd">–</td><td id="g_diff_add_cost" class="diffAdd">–</td></tr>
+                <tr><th scope="row" class="rowHeader">Net benefit (€)</th><td id="g_no_net_ben">—</td><td id="g_yes_net_ben" class="withAdd">–</td><td id="g_diff_net_ben" class="diffAdd">–</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="roiBox" class="roiBox" role="status" aria-live="polite">ROI: –</div>
+
+          <!-- Break-even Box with Help Tip -->
+          <div id="beBox" class="beBox" role="status" aria-live="polite">
+            Break‑even egg price
+            <span class="helpTip" tabindex="0" aria-label="Break‑even help">ⓘ
+              <span class="helpTipText">
+                The minimum egg price needed to justify the feed additive inclusion.
+              </span>
+            </span>
+            = <span id="beValue">–</span> €/egg
+          </div>
+        </section>
+      </div>
+
+      <div class="actionsBottom" aria-label="Actions">
+        <button class="btn" type="button" id="exportPDF" title="Export PDF">Export PDF</button>
+        <button class="btn" type="button" id="copy" title="Copy formatted summary">Copy</button>
+        <button class="btn icon" type="button" id="openHelp" title="Help">❓</button>
+        <button class="btn icon" type="button" id="openSetup" title="Setup">⚙</button>
+        <button class="btn" type="button" id="toggleTheme" title="Switch theme">Theme</button>
+        <button class="btn" type="button" id="exitApp" title="Close the app">Exit</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- HELP MODAL (starts hidden) -->
+  <div class="nvs-modal" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle" aria-hidden="true">
+    <div class="content">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 id="helpTitle">Help &amp; Methodology</h3>
+        <button class="btn" type="button" id="closeHelp" title="Close">Close</button>
+      </div>
+      <p class="hint"><strong>Purpose.</strong> Estimate ROI of a feed additive in commercial layers by combining: production uplift (HDP), sellable quality uplift (% sellable), and benefits from improved liveability (mortality reduction).</p>
+      <div class="setupDivider"></div>
+      <div class="setupSectionTitle">Inputs</div>
+      <ul>
+        <li><strong>Flock size (hens).</strong> Default is 1 for unit testing; set the actual flock for production.</li>
+        <li><strong>Phase length (weeks).</strong> Weeks analyzed (typically 60).</li>
+        <li><strong>Feed intake / hen / day (g).</strong> Average grams per hen per day.</li>
+        <li><strong>Feed additive inv. (€/t).</strong> Incremental cost per tonne of feed when additive is used.</li>
+        <li><strong>Average laying rate (HDP, %).</strong> Mean hen-day %.</li>
+        <li><strong>Egg price (€/egg).</strong> Average selling price.</li>
+      </ul>
+
+      <div class="setupSectionTitle">Effects</div>
+      <ul>
+        <li><strong>Mortality reduction (pp).</strong> Reduction in mortality across the phase, expressed in percentage points of the baseline phase mortality.</li>
+        <li><strong>Increment of laying eggs (%).</strong> Additional HDP.</li>
+        <li><strong>Increment of sellable eggs (%).</strong> Additional percentage of eggs that are sellable.</li>
+      </ul>
+
+      <div class="setupSectionTitle">Methodology: Mortality &amp; Liveability</div>
+      <p class="hint"><strong>Baseline deaths</strong> = <em>flock</em> × (<em>baseline mortality over phase</em> ÷ 100). <strong>Saved hens</strong> = <em>flock</em> × (min(<em>mortality reduction pp</em>, <em>baseline mortality</em>) ÷ 100).</p>
+      <ol>
+        <li><strong>Curve (Lohmann) model.</strong> Deaths are distributed weekly using a Lohmann cumulative mortality curve. We convert cumulative to weekly incidence and then:
+          <ul>
+            <li><em>Saved eggs</em> = Σ<sub>weeks</sub>(saved hens at week) × (HDP<sub>with</sub>/100 × 7) × (weeks remaining).</li>
+            <li><em>Feed reduction</em> = Σ<sub>weeks</sub>(deaths at week) × (feed/hen/day in kg) × 7 × (weeks remaining).</li>
+          </ul>
+        </li>
+      </ol>
+      <p class="hint"><strong>Revenue &amp; Costs.</strong> Eggs sold = Eggs produced × % sellable. Eggs revenue = Eggs sold × Egg price. Additive cost = Feed with additive (t) × Additive €/t. Net benefit = Eggs revenue − Additive investment. Diff net benefit = With net benefit − Without net benefit.</p>
+      <p class="hint"><strong>ROI.</strong> ROI = Diff net benefit ÷ Additive cost. <strong>Break‑even</strong> occurs when <strong>ROI = 0</strong> (net benefit = 0). <em>ROI = 1</em> means a <em>100% return</em> (net benefit equals additive cost).</p>
+      <div class="footerBar"><button class="btn" type="button" id="closeHelpFooter" title="Close">Close</button></div>
+    </div>
+  </div>
+
+  <!-- SETUP MODAL (starts hidden; curve control removed) -->
+  <div class="nvs-modal" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle" aria-hidden="true">
+    <div class="content">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h3 id="setupTitle">Setup</h3><button class="btn" type="button" id="closeSetup" title="Close">Close</button></div>
+      <div class="setupSectionTitle">Baselines</div>
+      <div class="row"><label for="feed_cost_t">Feed cost (€/t)</label><input name="feed_cost_t" id="feed_cost_t" type="number" step="10" min="0" value="300" /></div>
+      <div class="row"><label for="sellable_pct">Baseline sellable eggs rate (%)</label><input name="sellable_pct" id="sellable_pct" type="number" step="0.1" min="0" max="100" value="96" /></div>
+      <div class="row"><label for="base_mort_pct">Baseline mortality over phase (%)</label><input name="base_mort_pct" id="base_mort_pct" type="number" step="0.1" min="0" max="100" value="6" /></div>
+
+      <div class="setupDivider"></div>
+      <div class="setupSectionTitle">Slider ranges</div>
+      <div class="row"><label for="setup_mort_max">Mortality slider max (pp)</label><input name="setup_mort_max" id="setup_mort_max" type="number" step="0.1" min="0" value="3" /></div>
+      <div class="row"><label for="setup_lay_max">Laying slider max (%)</label><input name="setup_lay_max" id="setup_lay_max" type="number" step="0.1" min="0" value="3" /></div>
+      <div class="row"><label for="setup_sell_max">Sellable slider max (%)</label><input name="setup_sell_max" id="setup_sell_max" type="number" step="0.1" min="0" value="2" /></div>
+      <div class="setupDivider"></div>
+      <div class="row" style="grid-template-columns:1fr minmax(var(--w-input),140px)"><label for="feed_by_mort">Adjust feed by liveability (mortality)</label><input type="checkbox" id="feed_by_mort" checked /></div>
+      <div class="footerBar"><button class="btn" type="button" id="applySetup" title="Apply setup">Apply</button></div>
+    </div>
+  </div>
+
+<script defer>
+'use strict';
+const CONFIG={defaults:{weeks:60,fi_gpd:115,add_cost_t:4,hdp_pct:87,egg_price:0.15,feed_cost_t:300,sellable_pct:96,base_mort_pct:7,median_week:50,eggs_50_60:6.0,eggs_60_80:5.6,mort_slider_min:0,mort_slider_max:3,lay_slider_min:0,lay_slider_max:3,sell_slider_min:0,sell_slider_max:2,median_auto_ratio:0.65},roiColors:{green:'#39bf49',orange:'#d9ab38',red:'#e84638'},version:'version: 1.04',created:'2026-03'};
+const LOHMANN_MORT_CUM={19:0.0,20:0.2,21:0.3,22:0.4,23:0.5,24:0.6,25:0.7,26:0.8,27:1.0,28:1.1,29:1.2,30:1.3,31:1.4,32:1.5,33:1.6,34:1.7,35:1.8,36:1.9,37:2.1,38:2.2,39:2.3,40:2.4,41:2.5,42:2.6,43:2.7,44:2.8,45:2.9,46:3.0,47:3.2,48:3.3,49:3.4,50:3.5,51:3.6,52:3.7,53:3.8,54:3.9,55:4.0,56:4.1,57:4.3,58:4.4,59:4.5,60:4.6,61:4.7,62:4.8,63:4.9,64:5.0,65:5.1,66:5.2,67:5.4,68:5.5,69:5.6,70:5.7,71:5.8,72:5.9,73:6.0,74:6.1,75:6.2,76:6.3,77:6.5,78:6.6,79:6.7,80:6.8,81:6.9,82:7.0,83:7.1,84:7.2,85:7.3,86:7.4,87:7.6,88:7.7,89:7.8,90:7.9,91:8.2,92:8.3,93:8.5,94:8.6,95:8.8,96:8.9,97:9.1,98:9.2,99:9.4,100:9.5};
+/* Format helpers */
+const fmt1=v=>Number.isFinite(v)?(Math.round(v*10)/10).toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1}):'–';
+const fmt2=v=>Number.isFinite(v)?(Math.round(v*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'–';
+const fmtEUR2=v=>Number.isFinite(v)?new Intl.NumberFormat(undefined,{style:'currency',currency:'EUR',maximumFractionDigits:2}).format(v):'–';
+const setText=(id,text)=>{const el=document.getElementById(id); if(el) el.textContent=text};
+const setHTML=(id,html)=>{const el=document.getElementById(id); if(el) el.innerHTML=html};
+function pctHTML(diff,base){if(!Number.isFinite(diff)||!Number.isFinite(base)||base===0) return ''; const p=(diff/base)*100; const s=p>=0?'+':''; return `<span class="pct">(${s}${p.toFixed(1)}%)</span>`}
+
+const num=(id)=>{const el=document.getElementById(id); if(!el) return 0; let raw=String(el.value??'').trim(); raw=raw.replace(/\s+/g,''); const d=raw.lastIndexOf('.'),c=raw.lastIndexOf(','); if(d!==-1&&c!==-1){const lc=c>d; raw=lc?raw.replace(/\./g,'').replace(/,/g,'.'):raw.replace(/,/g,'')} else {if(c!==-1) raw=raw.replace(/,/g,'.')} const v=parseFloat(raw); return Number.isFinite(v)?v:0};
+
+/* Integer-only parser for flock (remove thousands, keep digits) */
+function numInt(id){
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const digits = String(el.value ?? '').replace(/[^\d]/g, '');
+  const v = parseInt(digits, 10);
+  return Number.isFinite(v) ? v : 0;
+}
+
+/* Thousands formatter */
+function formatThousands(n){ if(!Number.isFinite(n)) return ''; return Math.round(n).toLocaleString('en-US'); }
+
+/* Slider bindings and ranges */
+function bindSliderNumber(sliderId,numberId){const s=document.getElementById(sliderId),n=document.getElementById(numberId); if(!s||!n) return; s.value=n.value; s.addEventListener('input',e=>{n.value=e.target.value; calculate()}); n.addEventListener('input',e=>{let val=parseFloat(String(e.target.value).replace(/,/g,'.')); if(isNaN(val)) val=0; const min=parseFloat(s.min??0),max=parseFloat(s.max??100); val=Math.max(min,Math.min(max,val)); n.value=val; s.value=val; calculate()})}
+function applySliderRanges(){const mortMax=num('setup_mort_max'),layMax=num('setup_lay_max'),sellMax=num('setup_sell_max'); const mortS=document.getElementById('mort_red_pp_slider'); const layS=document.getElementById('inc_laying_slider'); const sellS=document.getElementById('inc_sellable_slider'); if(mortS){mortS.min=CONFIG.defaults.mort_slider_min; mortS.max=mortMax} if(layS){layS.min=CONFIG.defaults.lay_slider_min; layS.max=layMax} if(sellS){sellS.min=CONFIG.defaults.sell_slider_min; sellS.max=sellMax} [['mort_red_pp','mort_red_pp_slider'],['inc_laying','inc_laying_slider'],['inc_sellable','inc_sellable_slider']].forEach(([nId,sId])=>{const n=document.getElementById(nId),s=document.getElementById(sId); if(!n||!s) return; const min=parseFloat(s.min??0),max=parseFloat(s.max??100); let v=parseFloat(String(n.value).replace(/,/g,'.'))||0; v=Math.max(min,Math.min(max,v)); n.value=v; s.value=v})}
+
+/* Mortality incidence and calculations */
+function buildIncidence(phaseWeeks){const startAge=19; const endAge=Math.min(100,startAge+Math.max(1,Math.round(phaseWeeks))-1); const cumRaw=(age)=>LOHMANN_MORT_CUM[age]; const cumClamped=(age)=>LOHMANN_MORT_CUM[Math.max(19,Math.min(100,age))]; const inc={}; let sum=0; for(let a=startAge;a<=endAge;a++){const cur=cumClamped(a)??0; const prev=(a===startAge)?0:(cumRaw(a-1)??cumClamped(a-1)??0); const d=Math.max(0,cur-prev); inc[a]=d; sum+=d} return {startAge,endAge,inc,sum}}
+
+function calcFeedReductionKg({flock,phaseWeeks,fi_gpd,mort_pct}){const {startAge,endAge,inc,sum}=buildIncidence(phaseWeeks); if(sum<=0||mort_pct<=0) return 0; const deathsTotal=flock*(mort_pct/100); const kgPerDayPerHen=fi_gpd/1000; let feedReductionKg=0; for(let a=startAge;a<=endAge;a++){const share=inc[a]/sum; const deathsAtA=deathsTotal*share; const weeksRemaining=(endAge-a+1); feedReductionKg+=deathsAtA*kgPerDayPerHen*7*weeksRemaining} return feedReductionKg}
+
+function calcMortalityCurveSaved({flock,phaseWeeks,sellable_with,hdp_with_pct,mort_red_pp,base_mort_pct}){const {startAge,endAge,inc,sum}=buildIncidence(phaseWeeks); if(sum<=0) return {eggs_from_mort:0,sold_from_mort:0}; const saved_total=Math.min(flock*(mort_red_pp/100),flock*(base_mort_pct/100)); const eggsPerWeek=(hdp_with_pct/100)*7; let eggsSaved=0; for(let a=startAge;a<=endAge;a++){const share=inc[a]/sum; const savedAtA=saved_total*share; const weeksRemaining=(endAge-a+1); eggsSaved+=savedAtA*eggsPerWeek*weeksRemaining} const soldSaved=eggsSaved*sellable_with; return {eggs_from_mort:eggsSaved,sold_from_mort:soldSaved}}
+
+/* Main calculation */
+function calculate(){
+  let flock=Math.max(1,Math.min(1000000000,numInt('flock')));
+  const weeks=num('weeks'); const fi_gpd=num('fi_gpd'); const add_cost_t=num('add_cost_t');
+  const hdp_pct=num('hdp_pct'); const egg_price=num('egg_price'); const feed_cost_t=num('feed_cost_t');
+  const sellable_pct=Math.min(1,Math.max(0,num('sellable_pct')/100));
+  const base_mort_pct=Math.max(0,num('base_mort_pct'));
+  const mort_red_pp=Math.max(0,num('mort_red_pp'));
+  const inc_laying=Math.max(0,num('inc_laying')/100);
+  const inc_sellable=Math.max(0,num('inc_sellable')/100);
+  const sellable_with=Math.min(1,Math.max(0,sellable_pct+inc_sellable));
+  const hdp_with_pct=hdp_pct+(inc_laying*100);
+  const feedByMort=!!document.getElementById('feed_by_mort')?.checked;
+
+  const base_feed_kg=flock*(fi_gpd/1000)*7*weeks;
+  let total_feed_kg_no=base_feed_kg, total_feed_kg_yes=base_feed_kg;
+  if(feedByMort){
+    const mort_no=base_mort_pct; const mort_yes=Math.max(0,base_mort_pct-mort_red_pp);
+    const red_no_kg=calcFeedReductionKg({flock,phaseWeeks:weeks,fi_gpd,mort_pct:mort_no});
+    const red_yes_kg=calcFeedReductionKg({flock,phaseWeeks:weeks,fi_gpd,mort_pct:mort_yes});
+    total_feed_kg_no=Math.max(0,base_feed_kg-red_no_kg);
+    total_feed_kg_yes=Math.max(0,base_feed_kg-red_yes_kg)
+  }
+
+  const total_feed_t_no=total_feed_kg_no/1000;
+  const total_feed_t_yes=total_feed_kg_yes/1000;
+  const feed_no_add=total_feed_t_no*feed_cost_t;
+  const feed_with_add=total_feed_t_yes*(feed_cost_t+add_cost_t);
+  const additive_cost=total_feed_t_yes*add_cost_t;
+
+  const eggs_baseline=flock*7*weeks*(hdp_pct/100);
+  const eggs_with_add_noMort=flock*7*weeks*(hdp_with_pct/100);
+  const sold_baseline=eggs_baseline*sellable_pct;
+  const sold_with_add_noMort = eggs_with_add_noMort * sellable_with;
+
+  // Mortality model fixed to Curve (Lohmann)
+  const useCurve=true;
+  let eggs_from_mort=0,sold_from_mort=0;
+  {
+    const res=calcMortalityCurveSaved({flock,phaseWeeks:weeks,sellable_with,hdp_with_pct,mort_red_pp,base_mort_pct});
+    eggs_from_mort=res.eggs_from_mort; sold_from_mort=res.sold_from_mort;
+  }
+
+  const eggs_with_add_total=eggs_with_add_noMort+eggs_from_mort;
+  const sold_with_add_total=sold_with_add_noMort+sold_from_mort;
+  const eggs_rev_no=sold_baseline*egg_price;
+  const eggs_rev_yes=sold_with_add_total*egg_price;
+  const eggs_rev_gain=eggs_rev_yes-eggs_rev_no;
+  const incremental_feed_cost_total=feed_with_add-feed_no_add;
+  // Net benefit is calculated per scenario as Eggs revenue - Additive investment.
+  // Without additive: additive investment = 0.
+  // With additive: additive investment = additive_cost.
+  const net_benefit_no=eggs_rev_no;
+  const net_benefit_yes=eggs_rev_yes-additive_cost;
+  const net_benefit=net_benefit_yes-net_benefit_no;
+  const roi=(additive_cost>0)?(net_benefit/additive_cost):NaN;
+  const roi_pct=Number.isFinite(roi)?roi*100:NaN;
+  const deltaSold=sold_with_add_total-sold_baseline;
+  const be_price=(deltaSold>0)?(additive_cost/deltaSold):NaN;
+
+  const feed_per_hen_kg_no = flock > 0 ? (total_feed_kg_no / flock) : NaN;
+  const feed_per_hen_kg_yes = flock > 0 ? (total_feed_kg_yes / flock) : NaN;
+  const d_feed_per_hen = (Number.isFinite(feed_per_hen_kg_yes) && Number.isFinite(feed_per_hen_kg_no)) ? (feed_per_hen_kg_yes - feed_per_hen_kg_no) : NaN;
+
+  setText('g_no_feed_t',fmt2(total_feed_t_no)); setText('g_yes_feed_t',fmt2(total_feed_t_yes)); setHTML('g_diff_feed_t',`${fmt2(total_feed_t_yes-total_feed_t_no)}${pctHTML(total_feed_t_yes-total_feed_t_no,total_feed_t_no)}`);
+  setText('g_no_feed_hen',fmt2(feed_per_hen_kg_no)); setText('g_yes_feed_hen',fmt2(feed_per_hen_kg_yes)); setHTML('g_diff_feed_hen',`${fmt2(d_feed_per_hen)}${pctHTML(d_feed_per_hen,feed_per_hen_kg_no)}`);
+  setText('g_no_feed_cost',fmtEUR2(feed_no_add)); setText('g_yes_feed_cost',fmtEUR2(feed_with_add)); setHTML('g_diff_feed_cost',`${fmtEUR2(incremental_feed_cost_total)}${pctHTML(incremental_feed_cost_total,feed_no_add)}`);
+  const d_prod=eggs_with_add_total-eggs_baseline; setText('g_no_eggs_prod',fmt1(eggs_baseline)); setText('g_yes_eggs_prod',fmt1(eggs_with_add_total)); setHTML('g_diff_eggs_prod',`${fmt1(d_prod)}${pctHTML(d_prod,eggs_baseline)}`);
+  const d_sold=sold_with_add_total-sold_baseline; setText('g_no_eggs_sold',fmt1(sold_baseline)); setText('g_yes_eggs_sold',fmt1(sold_with_add_total)); setHTML('g_diff_eggs_sold',`${fmt1(d_sold)}${pctHTML(d_sold,sold_baseline)}`);
+  const d_rev=eggs_rev_gain; setText('g_no_eggs_rev',fmtEUR2(eggs_rev_no)); setText('g_yes_eggs_rev',fmtEUR2(eggs_rev_yes)); setHTML('g_diff_eggs_rev',fmtEUR2(d_rev));
+  setText('g_no_add_cost',fmtEUR2(0)); setText('g_yes_add_cost',fmtEUR2(additive_cost)); setText('g_diff_add_cost',fmtEUR2(additive_cost));
+  setText('g_no_net_ben',fmtEUR2(net_benefit_no)); setText('g_yes_net_ben',fmtEUR2(net_benefit_yes)); setText('g_diff_net_ben',fmtEUR2(net_benefit));
+
+  /* ROI background: red only when ROI < 0 */
+  const roiBox=document.getElementById('roiBox');
+  if(Number.isFinite(roi)){
+    roiBox.textContent=`ROI: ${roi.toFixed(2)} (${roi_pct.toFixed(1)}%)`;
+    if(roi<0){ roiBox.style.background=CONFIG.roiColors.red; roiBox.style.color='#041b0f'; }
+    else { roiBox.style.background=''; roiBox.style.color=''; }
+  } else {
+    roiBox.textContent='ROI: n/a'; roiBox.style.background=''; roiBox.style.color='';
+  }
+
+  /* Break-even: update only value span */
+  const beValueEl=document.getElementById('beValue');
+  if (beValueEl){
+    beValueEl.textContent = Number.isFinite(be_price) ? fmt2(be_price) : 'n/a';
+  }
+
+  window.__calc={flock,weeks,fi_gpd,add_cost_t,hdp_pct,egg_price,feed_cost_t,sellable_pct,base_mort_pct,mort_red_pp,inc_laying,inc_sellable,total_feed_t_no,total_feed_t_yes,feed_no_add,feed_with_add,additive_cost,incremental_feed_cost_total,eggs_baseline,eggs_with_add_noMort,eggs_from_mort,eggs_with_add_total,sold_baseline,sold_with_add_noMort,sold_from_mort,sold_with_add_total,eggs_rev_no,eggs_rev_yes,eggs_rev_gain,net_benefit_no,net_benefit_yes,net_benefit,roi,roi_pct,be_price,useCurve}
+}
+
+/* Export PDF */
+function exportPDF(){if(!window.__calc) calculate(); const c=window.__calc||{}; const stamp=new Date().toLocaleString(); const feedHenNo = (c.flock>0 && Number.isFinite(c.total_feed_t_no)) ? (c.total_feed_t_no*1000/c.flock) : NaN; const feedHenYes = (c.flock>0 && Number.isFinite(c.total_feed_t_yes)) ? (c.total_feed_t_yes*1000/c.flock) : NaN; const feedHenDiff = (Number.isFinite(feedHenYes) && Number.isFinite(feedHenNo)) ? (feedHenYes - feedHenNo) : NaN; const reportHTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>ROI Report</title><style>${document.querySelector('style').textContent}</style></head><body class="report"><h1>Layers ROI Report</h1><div class="meta">Generated: ${stamp} • Version ${CONFIG.version} • Created ${CONFIG.created}</div><h2>Scenario Inputs</h2><div class="grid"><div><strong>Flock</strong>: ${c.flock?.toLocaleString?.() ?? '-' } hens</div><div><strong>Phase length</strong>: ${c.weeks ?? '-' } weeks</div><div><strong>Feed intake</strong>: ${c.fi_gpd ?? '-' } g/hen/day</div><div><strong>Feed cost</strong>: ${fmtEUR2(c.feed_cost_t ?? 0)} / t</div><div><strong>Additive cost</strong>: ${fmtEUR2(c.add_cost_t ?? 0)} / t</div><div><strong>HDP</strong>: ${(c.hdp_pct ?? '-') + '%'} avg</div><div><strong>Sellable</strong>: ${(Math.round((c.sellable_pct ?? 0)*1000)/10) + '%'} baseline</div><div><strong>Egg price</strong>: ${fmt2(c.egg_price ?? 0)} €/egg</div><div><strong>Mortality reduction</strong>: ${(c.mort_red_pp ?? 0)} pp</div><div><strong>Increment laying</strong>: ${(Math.round((c.inc_laying ?? 0)*1000)/10) + '%'} </div><div><strong>Increment sellable</strong>: ${(Math.round((c.inc_sellable ?? 0)*1000)/10) + '%'} </div></div><h2>Results</h2><table><thead><tr><th>Metric</th><th>Without</th><th>With</th><th>Diff</th></tr></thead><tbody><tr><td>Feed (t)</td><td>${fmt2(c.total_feed_t_no)}</td><td>${fmt2(c.total_feed_t_yes)}</td><td>${fmt2((c.total_feed_t_yes ?? 0)-(c.total_feed_t_no ?? 0))}</td></tr><tr><td>Feed/hen (kg)</td><td>${fmt2(feedHenNo)}</td><td>${fmt2(feedHenYes)}</td><td>${fmt2(feedHenDiff)}</td></tr><tr><td>Feed cost (€)</td><td>${fmtEUR2(c.feed_no_add)}</td><td>${fmtEUR2(c.feed_with_add)}</td><td>${fmtEUR2(c.incremental_feed_cost_total)}</td></tr><tr><td>Eggs produced</td><td>${fmt1(c.eggs_baseline)}</td><td>${fmt1(c.eggs_with_add_total)}</td><td>${fmt1((c.eggs_with_add_total ?? 0)-(c.eggs_baseline ?? 0))}</td></tr><tr><td>Eggs sold</td><td>${fmt1(c.sold_baseline)}</td><td>${fmt1(c.sold_with_add_total)}</td><td>${fmt1((c.sold_with_add_total ?? 0)-(c.sold_baseline ?? 0))}</td></tr><tr><td>Eggs revenue (€)</td><td>${fmtEUR2(c.eggs_rev_no)}</td><td>${fmtEUR2(c.eggs_rev_yes)}</td><td>${fmtEUR2(c.eggs_rev_gain)}</td></tr><tr><td>Additive cost (€)</td><td>${fmtEUR2(0)}</td><td>${fmtEUR2(c.additive_cost)}</td><td>${fmtEUR2(c.additive_cost)}</td></tr><tr><td>Net benefit (€)</td><td>${fmtEUR2(c.net_benefit_no)}</td><td>${fmtEUR2(c.net_benefit_yes)}</td><td>${fmtEUR2(c.net_benefit)}</td></tr></tbody></table><h2>ROI</h2><p><strong>ROI</strong> = Diff net benefit ÷ Additive cost = ${Number.isFinite(c.roi)?c.roi.toFixed(2):'n/a'} (${Number.isFinite(c.roi_pct)?c.roi_pct.toFixed(1):'n/a'}%). Break‑even egg price = ${Number.isFinite(c.be_price)?fmt2(c.be_price):'n/a'} €/egg.</p><p class="meta"><small>Mortality model: Mortality Curve (based on Lohmann brown) • Feed by mortality: ${document.getElementById('feed_by_mort')?.checked?'ON':'OFF'}</small></p></body></html>`; const w=window.open('','_blank'); if(!w){alert('Popup blocked — allow popups for this site.'); return} try{w.document.open(); w.document.write(reportHTML); w.document.close(); setTimeout(()=>{w.focus(); w.print()},300)}catch{alert('Could not open print view.')}}
+
+function toast(msg){const t=document.createElement('div'); t.textContent=msg; Object.assign(t.style,{position:'fixed',top:'64px',right:'16px',background:'rgba(0,0,0,.50)',border:'1px solid #1f2937',color:'#e5e7eb',padding:'10px 14px',borderRadius:'10px',boxShadow:'0 2px 16px rgba(0,0,0,.35)',zIndex:'70'}); document.body.appendChild(t); setTimeout(()=>t.remove(),1800)}
+function copyFormatted(){ if(!window.__calc) calculate(); const c=window.__calc||{}; const theme=document.documentElement.getAttribute('data-theme')||'dark'; const model='Curve (Lohmann Brown)'; const feedByMort=document.getElementById('feed_by_mort')?.checked?'ON':'OFF'; const text = [ 'Layers ROI Report','=================', `Theme: ${theme}  •  Mortality model: ${model}  •  Feed by mortality: ${feedByMort}`,'', 'Inputs:', `- Flock size: ${c.flock?.toLocaleString?.() ?? '-'} hens`, `- Phase length: ${c.weeks ?? '-'} weeks`, `- Feed intake: ${c.fi_gpd ?? '-'} g/hen/day`, `- Feed cost: ${fmtEUR2(c.feed_cost_t ?? 0)} / t`, `- Additive cost: ${fmtEUR2(c.add_cost_t ?? 0)} / t`, `- Laying rate: ${c.hdp_pct ?? '-'}%`, `- Sellable baseline: ${(Math.round((c.sellable_pct ?? 0)*1000)/10)}%`, `- Egg price: ${fmt2(c.egg_price ?? 0)} €/egg`, `- Mortality reduction: ${c.mort_red_pp ?? 0} pp`, `- Increment laying: ${(Math.round((c.inc_laying ?? 0)*1000)/10)}%`, `- Increment sellable: ${(Math.round((c.inc_sellable ?? 0)*1000)/10)}%`, '', 'Results:', `- Feed (t): ${fmt2(c.total_feed_t_no)} → ${fmt2(c.total_feed_t_yes)} | Δ ${fmt2((c.total_feed_t_yes ?? 0)-(c.total_feed_t_no ?? 0))}`, `- Feed cost (€): ${fmtEUR2(c.feed_no_add)} → ${fmtEUR2(c.feed_with_add)} | Δ ${fmtEUR2(c.incremental_feed_cost_total)}`, `- Eggs produced: ${fmt1(c.eggs_baseline)} → ${fmt1(c.eggs_with_add_total)} | Δ ${fmt1((c.eggs_with_add_total ?? 0)-(c.eggs_baseline ?? 0))}`, `- Eggs sold: ${fmt1(c.sold_baseline)} → ${fmt1(c.sold_with_add_total)} | Δ ${fmt1((c.sold_with_add_total ?? 0)-(c.sold_baseline ?? 0))}`, `- Eggs revenue (€): ${fmtEUR2(c.eggs_rev_no)} → ${fmtEUR2(c.eggs_rev_yes)} | Δ ${fmtEUR2(c.eggs_rev_gain)}`, `- Additive cost (€): ${fmtEUR2(c.additive_cost)}`, `- Net benefit (€): ${fmtEUR2(c.net_benefit_no)} → ${fmtEUR2(c.net_benefit_yes)} | Δ ${fmtEUR2(c.net_benefit)}`,'', `ROI: ${Number.isFinite(c.roi)?c.roi.toFixed(2):'n/a'} (${Number.isFinite(c.roi_pct)?c.roi_pct.toFixed(1):'n/a'}%)`, `Break-even egg price = ${Number.isFinite(c.be_price)?fmt2(c.be_price):'n/a'} €/egg` ].join('\n');
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>toast('Formatted report copied.')).catch(()=>{throw new Error('Clipboard blocked')})} else {throw new Error('No clipboard API')} }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.top='-10000px'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); toast('Formatted report copied.') }catch{ toast('Copy failed — text selected, press Ctrl/Cmd+C.') } finally{document.body.removeChild(ta)} }
+}
+
+/* Modal controls */
+let __lastOpener=null; 
+function openModal(modalId,initialFocusId){const m=document.getElementById(modalId); if(!m) return; __lastOpener=document.activeElement; m.setAttribute('data-open','true'); m.setAttribute('aria-hidden','false'); const f=initialFocusId&&document.getElementById(initialFocusId); (f||m).focus(); const onKey=(e)=>{ if(e.key==='Escape') closeModal(modalId); }; m.__esc=onKey; document.addEventListener('keydown',onKey)}
+function closeModal(modalId){const m=document.getElementById(modalId); if(!m) return; m.removeAttribute('data-open'); m.setAttribute('aria-hidden','true'); if(m.__esc) document.removeEventListener('keydown', m.__esc); if(__lastOpener && typeof __lastOpener.focus==='function') __lastOpener.focus()}
+
+/* Wire-up */
+document.getElementById('openHelp').addEventListener('click',()=>openModal('helpModal','closeHelp'));
+document.getElementById('closeHelp').addEventListener('click',()=>closeModal('helpModal'));
+document.getElementById('closeHelpFooter').addEventListener('click',()=>closeModal('helpModal'));
+
+document.getElementById('openSetup').addEventListener('click',()=>openModal('setupModal','applySetup'));
+document.getElementById('closeSetup').addEventListener('click',()=>closeModal('setupModal'));
+document.getElementById('applySetup').addEventListener('click',()=>{applySliderRanges(); closeModal('setupModal'); calculate()});
+
+document.getElementById('exportPDF').addEventListener('click',exportPDF);
+document.getElementById('copy').addEventListener('click',copyFormatted);
+document.getElementById('toggleTheme').addEventListener('click',()=>{const cur=document.documentElement.getAttribute('data-theme')||'dark'; document.documentElement.setAttribute('data-theme',cur==='dark'?'light':'dark'); try{localStorage.setItem('layers_roi_theme',cur==='dark'?'light':'dark')}catch{}});
+document.getElementById('exitApp').addEventListener('click',()=>{try{window.close()}catch{} try{const selfWin=window.open('', '_self'); selfWin.close()}catch{} try{ if(!document.hidden){ location.replace('about:blank'); return } }catch{} try{ document.body.innerHTML=''; document.title='Closed'; const d=document.createElement('div'); d.style.cssText='padding:20px;font-family:sans-serif;color:#334155'; d.textContent='This window has been closed.'; document.body.appendChild(d) }catch{} });
+
+bindSliderNumber('mort_red_pp_slider','mort_red_pp');
+bindSliderNumber('inc_laying_slider','inc_laying');
+bindSliderNumber('inc_sellable_slider','inc_sellable');
+
+/* Recalc hook (includes weeks) */
+function hookRecalc(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isNumInput = el.tagName === 'INPUT' && (el.type === 'number' || el.type === 'text' || el.type === 'range');
+  el.addEventListener(isNumInput ? 'input' : 'change', () => { calculate(); });
+}
+['flock','weeks','fi_gpd','add_cost_t','hdp_pct','egg_price'].forEach(hookRecalc);
+// Setup baseline inputs
+['feed_cost_t','sellable_pct','base_mort_pct'].forEach(hookRecalc);
+
+document.getElementById('feed_by_mort')?.addEventListener('change', calculate);
+
+/* Flock formatting behavior */
+(function(){
+  const flockEl = document.getElementById('flock');
+  if(!flockEl) return;
+
+  flockEl.addEventListener('blur', ()=>{
+    const v = Math.max(1, Math.min(10000000, numInt('flock')));
+    flockEl.value = formatThousands(v);
+  });
+
+  flockEl.addEventListener('focus', ()=>{
+    const v = Math.max(1, Math.min(10000000, numInt('flock')));
+    flockEl.value = String(v);
+  });
+
+  flockEl.addEventListener('input', ()=>{ calculate(); });
+})();
+
+document.addEventListener('DOMContentLoaded',()=>{
+  try{const saved=localStorage.getItem('layers_roi_theme'); if(saved) document.documentElement.setAttribute('data-theme',saved)}catch{}
+  document.getElementById('versionTR').textContent = CONFIG.version;
+  document.getElementById('setup_mort_max')?.setAttribute('value',CONFIG.defaults.mort_slider_max);
+  document.getElementById('setup_lay_max')?.setAttribute('value',CONFIG.defaults.lay_slider_max);
+  document.getElementById('setup_sell_max')?.setAttribute('value',CONFIG.defaults.sell_slider_max);
+  document.getElementById('mort_red_pp_slider').min=CONFIG.defaults.mort_slider_min;
+  document.getElementById('inc_laying_slider').min=CONFIG.defaults.lay_slider_min;
+  document.getElementById('inc_sellable_slider').min=CONFIG.defaults.sell_slider_min;
+  applySliderRanges();
+
+  // Initial flock formatting
+  const flockInit = numInt('flock');
+  const flockElInit = document.getElementById('flock');
+  if (flockElInit && flockInit>0) {
+    flockElInit.value = formatThousands(flockInit);
+  }
+
+  calculate();
+});
+</script>
+</body>
+</html>
+``
