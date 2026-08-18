@@ -130,8 +130,6 @@ An ROI of:
 - 2 = 200% return
 - >2 = High-value investment
 
-【1-ef2927】
-
 ---
 
 ## Typical Applications
