@@ -1,6 +1,6 @@
 # 🥚 Layers ROI Studio
 
-**Decisions based on ROI**
+**Decisions based on Return-Over-Investiment (ROI)**
 
 Layers ROI Studio is an interactive decision-support tool designed to quantify the financial impact of feed additives and management interventions in commercial laying hens.
 
